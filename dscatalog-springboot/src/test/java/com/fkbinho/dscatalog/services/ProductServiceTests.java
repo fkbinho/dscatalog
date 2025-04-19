@@ -6,6 +6,7 @@ import com.fkbinho.dscatalog.repositories.ProductRepository;
 import com.fkbinho.dscatalog.services.exceptions.DatabaseException;
 import com.fkbinho.dscatalog.services.exceptions.ResourceNotFoundException;
 import com.fkbinho.dscatalog.tests.Factory;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -81,6 +82,21 @@ public class ProductServiceTests {
         // when checking for a dependent ID
         Mockito.when(repository.existsById(dependentId)).thenReturn(true);
 
+    }
+
+    @Test
+    public void findByIdShouldThrowResourceNotFoundExceptionWhenIdDoesNotExist() {
+        Assertions.assertThrows(
+                ResourceNotFoundException.class,
+                () -> service.findById(nonExistingId)
+        );
+    }
+
+    @Test
+    public void findByIdShouldReturnProductDTOWhenIdExists() {
+        ProductDTO result = service.findById(existingId);
+
+        Assertions.assertNotNull(result);
     }
 
     @Test

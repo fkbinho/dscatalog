@@ -1,7 +1,9 @@
 package com.fkbinho.dscatalog.services;
 
 import com.fkbinho.dscatalog.dto.ProductDTO;
+import com.fkbinho.dscatalog.entities.Category;
 import com.fkbinho.dscatalog.entities.Product;
+import com.fkbinho.dscatalog.repositories.CategoryRepository;
 import com.fkbinho.dscatalog.repositories.ProductRepository;
 import com.fkbinho.dscatalog.services.exceptions.DatabaseException;
 import com.fkbinho.dscatalog.services.exceptions.ResourceNotFoundException;
@@ -34,11 +36,16 @@ public class ProductServiceTests {
     @Mock
     private ProductRepository repository;
 
+    @Mock
+    private CategoryRepository categoryRepository;
+
     private long existingId;
     private long nonExistingId;
     private long dependentId;
     private PageImpl<Product> page;
     private Product product;
+    private ProductDTO productDTO;
+    private Category category;
 
     @BeforeEach
     void setUp() {
@@ -46,7 +53,25 @@ public class ProductServiceTests {
         nonExistingId = 2L;
         dependentId = 3L;
         product = Factory.createProduct();
+        category = Factory.createCategory();
+        productDTO = Factory.createProductDTO();
         page = new PageImpl<>(List.of(product));
+
+        // Mock the behavior of the repository to return a product
+        // when getReferenceById is called with an existing ID
+        Mockito.when(repository.getReferenceById((existingId))).thenReturn(product);
+
+        // Mock the behavior of the repository to throw EntityNotFoundException
+        // when getReferenceById is called with a non-existing ID
+        Mockito.when(repository.getReferenceById(nonExistingId)).thenThrow(EntityNotFoundException.class);
+
+        // Mock the behavior of the category repository to return a category
+        // when getReferenceById is called with an existing ID
+        Mockito.when(categoryRepository.getReferenceById((existingId))).thenReturn(Factory.createCategory());
+
+        // Mock the behavior of the category repository to throw EntityNotFoundException
+        // when getReferenceById is called with a non-existing ID
+        Mockito.when(categoryRepository.getReferenceById((nonExistingId))).thenThrow(EntityNotFoundException.class);
 
         // Mock the behavior of the repository to return a list of products
         // when findAll is called with any Pageable
@@ -82,6 +107,21 @@ public class ProductServiceTests {
         // when checking for a dependent ID
         Mockito.when(repository.existsById(dependentId)).thenReturn(true);
 
+    }
+
+    @Test
+    public void updateShouldThrowResourceNotFoundExceptionWhenIdDoesNotExist() {
+        Assertions.assertThrows(
+                ResourceNotFoundException.class,
+                () -> service.update(nonExistingId, productDTO)
+        );
+    }
+
+    @Test
+    public void updateShouldReturnProductDTOWhenIdExists() {
+        ProductDTO result = service.update(existingId, productDTO);
+
+        Assertions.assertNotNull(result);
     }
 
     @Test

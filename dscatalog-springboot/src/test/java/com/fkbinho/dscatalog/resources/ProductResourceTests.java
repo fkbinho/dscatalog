@@ -64,6 +64,10 @@ public class ProductResourceTests {
         when(service.findById(nonExistingId)).thenThrow(ResourceNotFoundException.class);
 
         // Mocking the service to return a ProductDTO
+        // when insert is called with any ProductDTO
+        when(service.insert(any())).thenReturn(productDTO);
+
+        // Mocking the service to return a ProductDTO
         // when update is called with existingId
         // eq(existingId) is used to match the existingId
         when(service.update(eq(existingId), any())).thenReturn(productDTO);
@@ -83,6 +87,22 @@ public class ProductResourceTests {
         // Mocking the service to throw DatabaseException
         // when delete is called with dependentId
         doThrow(DatabaseException.class).when(service).delete(dependentId);
+    }
+
+    @Test
+    public void insertShouldReturnProductDTOCreated() throws Exception {
+        String jsonBody = objectMapper.writeValueAsString(productDTO);
+
+        ResultActions result =
+                mockMvc.perform(post("/products")
+                        .content(jsonBody)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON));
+
+        result.andExpect(status().isCreated());
+        result.andExpect(jsonPath("$.id").exists());
+        result.andExpect(jsonPath("$.name").exists());
+        result.andExpect(jsonPath("$.description").exists());
     }
 
     @Test

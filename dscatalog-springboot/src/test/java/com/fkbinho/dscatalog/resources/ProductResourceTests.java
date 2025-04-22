@@ -3,6 +3,7 @@ package com.fkbinho.dscatalog.resources;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fkbinho.dscatalog.dto.ProductDTO;
 import com.fkbinho.dscatalog.services.ProductService;
+import com.fkbinho.dscatalog.services.exceptions.DatabaseException;
 import com.fkbinho.dscatalog.services.exceptions.ResourceNotFoundException;
 import com.fkbinho.dscatalog.tests.Factory;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,9 +20,8 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -39,6 +39,7 @@ public class ProductResourceTests {
 
     private long existingId;
     private long nonExistingId;
+    private long dependentId;
     private ProductDTO productDTO;
     private PageImpl<ProductDTO> page;
 
@@ -46,6 +47,7 @@ public class ProductResourceTests {
     void setUp() {
         existingId = 1L;
         nonExistingId = 2L;
+        dependentId = 3L;
         productDTO = Factory.createProductDTO();
         page = new PageImpl<>(List.of(productDTO));
 
@@ -69,6 +71,36 @@ public class ProductResourceTests {
         // Mocking the service to throw ResourceNotFoundException
         // when update is called with nonExistingId
         when(service.update(eq(nonExistingId), any())).thenThrow(ResourceNotFoundException.class);
+
+        // Mocking the service to do nothing
+        // when delete is called with existingId
+        doNothing().when(service).delete(existingId);
+
+        // Mocking the service to throw ResourceNotFoundException
+        // when delete is called with nonExistingId
+        doThrow(ResourceNotFoundException.class).when(service).delete(nonExistingId);
+
+        // Mocking the service to throw DatabaseException
+        // when delete is called with dependentId
+        doThrow(DatabaseException.class).when(service).delete(dependentId);
+    }
+
+    @Test
+    public void deleteShouldReturnNoContentWhenIdExists() throws Exception {
+        ResultActions result =
+                mockMvc.perform(delete("/products/{id}", existingId)
+                        .accept(MediaType.APPLICATION_JSON));
+
+        result.andExpect(status().isNoContent());
+    }
+
+    @Test
+    public void deleteShouldReturnNotFoundWhenIdDoesNotExist() throws Exception {
+        ResultActions result =
+                mockMvc.perform(delete("/products/{id}", nonExistingId)
+                        .accept(MediaType.APPLICATION_JSON));
+
+        result.andExpect(status().isNotFound());
     }
 
     @Test
